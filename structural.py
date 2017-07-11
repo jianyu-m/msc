@@ -3,14 +3,15 @@ from queue import Queue
 import numpy
 
 
-def dfs(u, matching, check, g, n):
+def dfs(u, matching, check, g, n, nodes):
     for v in range(n):
-        if g[u][v] == 0 or check[v]:
+        if g[v][u] == 0 or check[v]:
             continue
         check[v] = True
-        if matching[v] == -1 or dfs(matching[v], matching, check, g, n):
+        if matching[v] == -1 or dfs(matching[v], matching, check, g, n, nodes):
             matching[u] = v
             matching[v] = u
+            nodes[v] = True
             return True
     return False
 
@@ -27,13 +28,14 @@ def process_graph(g):
     ans = 0
     matching = [-1 for i in range(n)]
     check = [False for i in range(n)]
+    matched_nodes = [False for i in range(n)]
     for u in range(n):
         if matching[u] == -1:
             reset(check)
-            if dfs(u, matching, check, g, n):
+            if dfs(u, matching, check, g, n, matched_nodes):
                 ans += 1
     print("find " + str(ans) + " matches")
-    return matching
+    return matched_nodes
 
 
 def process_graph_bfs(g):
@@ -91,8 +93,12 @@ if __name__ == "__main__":
                      (1, 0, 0, 0, 0, 0)], numpy.int16)
 
     # input is a transmission matrix representing the graph
-    B = process_graph(A)
+    nodes_vec = process_graph(A)
+    nodes_unmatched = []
+    for i, node in enumerate(nodes_vec):
+        if not node:
+            nodes_unmatched.append(i)
     # for l in un_lam:
     #     print(sympy.Matrix(l * numpy.identity(N) - A))
 
-    print(B)
+    print(nodes_unmatched)
