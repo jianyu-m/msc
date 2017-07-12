@@ -2,6 +2,8 @@ from queue import Queue
 
 import numpy
 
+import ERGenerator
+
 
 def dfs(u, matching, check, g, n, nodes):
     for v in range(n):
