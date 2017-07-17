@@ -1,6 +1,8 @@
 
 import numpy
 from numpy.linalg import matrix_rank
+from multiprocessing import Pool
+import time
 
 import sparse_reader
 
@@ -48,6 +50,25 @@ def set_v(arr, v):
             v[i] = True
 
 
+def get_v(arr):
+    l = []
+    base = matrix_rank(arr[0])
+    if base == 0:
+        l.append(0)
+    for i in range(1, len(arr)):
+        cal_rank = matrix_rank(arr[0:i + 1, :])
+        if cal_rank > base:
+            base = cal_rank
+        else:
+            l.append(i)
+    return l
+
+
+def process_lambda(arg):
+    lam, graph, n = arg
+    return get_v(element_column(graph - lam * numpy.identity(n), n))
+
+
 def process_graph(graph):
     global eps
     n_r, n_c = graph.shape
@@ -64,13 +85,18 @@ def process_graph(graph):
 
     msc_upper = sum(lambda_arr)
 
+    pool = Pool(processes=2)
+    args = [(lam, graph, n) for lam in unique_lamda]
     # find msc
     v = [False for i in range(n)]
-    for lam in unique_lamda:
-        # union the v set
-        set_v(element_column(graph - lam * numpy.identity(n), n), v)
-        element_column(graph - lam * numpy.identity(n), n)
-    # calculate the final result
+    v_list = pool.map(process_lambda, args)
+    for vs in v_list:
+        for vi in vs:
+            v[vi] = True
+    # for lam in unique_lamda:
+    #     # union the v set
+    #     set_v(element_column(graph - lam * numpy.identity(n), n), v)
+    # # calculate the final result
     msc = 0
     for vi in v:
         if vi:
@@ -93,16 +119,21 @@ if __name__ == "__main__":
                      (1, 0, 0, 0, 0, 1),
                      (1, 0, 0, 0, 0, 0)], numpy.float64)
 
+    ts = time.time()
+
     # input is a transmission matrix representing the graph
     # msc = process_graph(sparse_reader.file_to_matrix("celegans_metabolic[503].net", 503))
-    # msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s208a[122].txt", 122))
+    msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s208a[122].txt", 122))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s420a[252].txt", 252))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s838a[515].txt", 515))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Organizational-Consulting[46].txt", 46))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Organizational-Freeman[46].txt", 46))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Trust-prison inmate[67].txt", 67))
     # msc = process_graph(A)
+
+    te = time.time()
     print("controller number | msc | upper_bound | unique_lambda - 1 <= upper - lower")
     print(msc)
+    print("time " + str(te - ts))
     # for l in un_lam:
     #     print(sympy.Matrix(l * numpy.identity(N) - A))
