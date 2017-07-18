@@ -101,7 +101,7 @@ def process_graph(graph):
         print("wrong matrix")
         return
     n = n_r
-    eps = numpy.finfo(graph.dtype).eps * n
+    eps = numpy.finfo(graph.dtype).eps
     lamda, v = numpy.linalg.eig(graph)
     unique_lamda = numpy.unique(lamda)
     lambda_arr = lambda_geo(graph, unique_lamda, n)
@@ -110,7 +110,7 @@ def process_graph(graph):
 
     msc_upper = sum(lambda_arr)
 
-    pool = Pool(processes=1)
+    pool = Pool(processes=4)
     args = [(lam, graph, n) for lam in unique_lamda]
     # find msc
     v = [False for i in range(n)]
@@ -148,9 +148,9 @@ if __name__ == "__main__":
 
     # input is a transmission matrix representing the graph
     # msc = process_graph(sparse_reader.file_to_matrix("celegans_metabolic[503].net", 503))
-    msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s208a[122].txt", 122))
+    # msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s208a[122].txt", 122))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s420a[252].txt", 252))
-    # msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s838a[515].txt", 515))
+    msc = process_graph(sparse_reader.file_to_matrix("dataset/Electronic circuits-s838a[515].txt", 515))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Organizational-Consulting[46].txt", 46))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Organizational-Freeman[46].txt", 46))
     # msc = process_graph(sparse_reader.file_to_matrix("dataset/Trust-prison inmate[67].txt", 67))
