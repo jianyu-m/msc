@@ -1,5 +1,6 @@
 
 import numpy
+import sympy
 from numpy.linalg import matrix_rank
 from multiprocessing import Pool
 import time
@@ -16,26 +17,36 @@ def lambda_geo(arr, unique_arr, n):
     return geo
 
 
-def get_none_zero(arr, to):
+def get_none_zero(arr, old_k):
     for i, val in enumerate(arr):
-        if val > eps and i >= to:
+        if abs(val) > eps and i >= old_k:
             return i, val
     return -1, 0
 
 
 def element_column(arr, n):
+    # s is the row
+    # k is the non-zero row
+    v = [False for i in range(n)]
+    l = []
+    s = 0
     for i in range(n):
-        k, p = get_none_zero(arr[i], i)
+        k, p = get_none_zero(arr[:, i], s)
         if k == -1:
             continue
         else:
-            if k != i:
-                arr[:, k], arr[:, i] = arr[:, i], arr[:, k].copy()
-            if k != 1:
-                arr[:, i] = arr[:, i] / arr[i][i]
-            for j in range(i + 1, n):
-                arr[:, j] = arr[:, j] - arr[i][j] * arr[:, i]
-    return arr
+            v[i] = True
+            if k != s:
+                arr[k], arr[s] = arr[s], arr[k].copy()
+            if p != 1:
+                arr[s] = arr[s] / arr[s][i]
+            for j in range(s + 1, n):
+                arr[j] = arr[j] - arr[j][i] * arr[s]
+            s += 1
+    for i, vi in enumerate(v):
+        if not vi:
+            l.append(i)
+    return l
 
 
 def set_v(arr, v):
@@ -50,7 +61,7 @@ def set_v(arr, v):
             v[i] = True
 
 
-def get_v(arr):
+def get_v_old(arr):
     l = []
     base = matrix_rank(arr[0])
     if base == 0:
@@ -64,9 +75,23 @@ def get_v(arr):
     return l
 
 
+from numpy import dot, zeros
+from numpy.linalg import matrix_rank, norm
+
+
+def get_v(R):
+    lambdas, V = numpy.linalg.eig(R.transpose())
+    lam_arr = lambdas == 0
+    l = []
+    for i, lam in enumerate(lam_arr):
+        if lam:
+            l.append(i)
+    return l
+
+
 def process_lambda(arg):
     lam, graph, n = arg
-    return get_v(element_column(graph - lam * numpy.identity(n), n))
+    return element_column((graph - lam * numpy.identity(n)).transpose(), n)
 
 
 def process_graph(graph):
@@ -85,7 +110,7 @@ def process_graph(graph):
 
     msc_upper = sum(lambda_arr)
 
-    pool = Pool(processes=2)
+    pool = Pool(processes=1)
     args = [(lam, graph, n) for lam in unique_lamda]
     # find msc
     v = [False for i in range(n)]
