@@ -1,6 +1,5 @@
 
 import numpy
-import sympy
 from numpy.linalg import matrix_rank
 from multiprocessing import Pool
 import time
@@ -8,6 +7,7 @@ import time
 import sparse_reader
 
 global eps
+
 
 # calculate geo-multiplicity
 def lambda_geo(arr, unique_arr, n):
@@ -27,6 +27,10 @@ def get_none_zero(arr, old_k):
 def element_column(arr, n):
     # s is the row
     # k is the non-zero row
+    global eps
+    m = abs(arr).max()
+    eps = numpy.finfo(numpy.float64).eps * n * (m * m + m * 2 + 1) * 2
+    # gg = arr.copy()
     v = [False for i in range(n)]
     l = []
     s = 0
@@ -38,14 +42,15 @@ def element_column(arr, n):
             v[i] = True
             if k != s:
                 arr[k], arr[s] = arr[s], arr[k].copy()
-            if p != 1:
-                arr[s] = arr[s] / arr[s][i]
             for j in range(s + 1, n):
-                arr[j] = arr[j] - arr[j][i] * arr[s]
+                arr[j] = arr[j] - arr[j][i] * arr[s] / arr[s][i]
             s += 1
     for i, vi in enumerate(v):
         if not vi:
             l.append(i)
+    # if n - matrix_rank(gg) > len(l) + 1:
+        # mm = [arr[i][i] for i in range(n)]
+        # assert False
     return l
 
 
@@ -75,10 +80,6 @@ def get_v_old(arr):
     return l
 
 
-from numpy import dot, zeros
-from numpy.linalg import matrix_rank, norm
-
-
 def get_v(R):
     lambdas, V = numpy.linalg.eig(R.transpose())
     lam_arr = lambdas == 0
@@ -101,7 +102,7 @@ def process_graph(graph):
         print("wrong matrix")
         return
     n = n_r
-    eps = numpy.finfo(graph.dtype).eps * n
+    eps = numpy.finfo(numpy.float64).eps * n * 200
     lamda, v = numpy.linalg.eig(graph)
     unique_lamda = numpy.unique(lamda)
     lambda_arr = lambda_geo(graph, unique_lamda, n)
